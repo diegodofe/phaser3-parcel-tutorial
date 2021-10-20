@@ -1,30 +1,44 @@
-import Phaser from "phaser";
+import Phaser from 'phaser'
+import ScoreLabel from '../ui/ScoreLabel';
 
 const GROUND_KEY = "ground";
 const DUDE_KEY = "dude";
+const STAR_KEY = "star";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super("game-scene");
     this.player = undefined;
     this.cursors = undefined;
+    this.scoreLabel = undefined;
   }
 
   preload() {
-    this.load.image("sky", "assets/sky.png");
+
+    this.load.image("wood","assets/wood.png")
+   // this.load.image("sky", "assets/sky.png");
     this.load.image(GROUND_KEY, "assets/platform.png");
-    this.load.image("star", "assets/star.png");
+    this.load.image(STAR_KEY, "assets/star.png");
     this.load.image("bomb", "assets/bomb.png");
     this.load.spritesheet(DUDE_KEY, "assets/dude.png", { frameWidth: 32, frameHeight: 48 });
   }
 
   create() {
-    this.add.image(400, 300, "sky");
+
+    this.add.image(400,300,"wood");
+    //this.add.image(400, 300, "sky");
 
     const platforms = this.createPlatforms();
     this.player = this.createPlayer();
+    const stars = this.createStars();
+
+    this.scoreLabel = this.createScoreLabel(16,16,0)
 
     this.physics.add.collider(this.player, platforms);
+    this.physics.add.collider(stars, platforms);
+
+    this.physics.add.overlap(this.player, stars, this.collectStar, null, this);
+
     this.cursors = this.input.keyboard.createCursorKeys();
   }
 
@@ -43,6 +57,11 @@ export default class GameScene extends Phaser.Scene {
     if (this.cursors.up.isDown && this.player.body.touching.down) {
       this.player.setVelocityY(-330);
     }
+  }
+
+  collectStar(player, star) {
+    star.disableBody(true, true);
+    this.scoreLabel.add(10)
   }
 
   createPlatforms() {
@@ -83,4 +102,29 @@ export default class GameScene extends Phaser.Scene {
 
     return player;
   }
+
+  createStars() {
+    const stars = this.physics.add.group({
+      key: STAR_KEY,
+      repeat: 11,
+      setXY: { x: 12, y: 0, stepX: 70 },
+    });
+
+    stars.children.iterate((c) => {
+      const child = /**@type {Phaser.Physics.Arcade.Sprite} */ (c);
+      child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+    });
+
+    return stars;
+  }
+
+  createScoreLabel(x,y,score){
+    const style = {fontSize:'32px',fill:'#000'}
+    const label = new ScoreLabel(this,x,y,score,style)
+
+    this.add.existing(label)
+
+    return label
+  }
+
 }
